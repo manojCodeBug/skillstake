@@ -15,8 +15,18 @@ const idParamSchema = z.object({ id: z.string().min(1) });
 export function createApp() {
   const app = express();
 
+  const allowedOrigins = env.ALLOWED_ORIGIN.split(",").map((o) => o.trim());
   app.use(helmet());
-  app.use(cors({ origin: env.ALLOWED_ORIGIN, credentials: true }));
+  app.use(cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true
+  }));
   app.use(express.json({ limit: "1mb" }));
   app.use(rateLimit({ windowMs: 60_000, limit: 200 }));
   app.use(pinoHttp());

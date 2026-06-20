@@ -7,5 +7,10 @@ build
 .env.*.local
 coverage
 .playwright
+playwright-report
+test-results
 vite.config.ts.timestamp-*
 *.tsbuildinfo
+contracts/skillstake-contract/target/
+.turbo/
+.vercel/

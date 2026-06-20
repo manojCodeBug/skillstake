@@ -22,10 +22,16 @@ export async function sorobanServer() {
 }
 
 export async function fetchXlmBalance(address: string) {
-  const server: any = await horizonServer();
-  const account = await server.accounts().accountId(address).call();
-  const balanceEntry = account.balances.find((entry: { asset_type: string; balance: string }) => entry.asset_type === "native");
-  return Number(balanceEntry?.balance ?? "0");
+  try {
+    const server: any = await horizonServer();
+    const account = await server.accounts().accountId(address).call();
+    const balanceEntry = account.balances.find((entry: { asset_type: string; balance: string }) => entry.asset_type === "native");
+    return Number(balanceEntry?.balance ?? "0");
+  } catch (error) {
+    // If the account does not exist on Horizon yet, it will throw a 404 error.
+    // Return 0 instead of propagating the error.
+    return 0;
+  }
 }
 
 export async function loadAccount(address: string) {

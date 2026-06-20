@@ -11,7 +11,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@skillstake/shared": "file:../../packages/shared",
+    "@skillstake/shared": "*",
     "@stellar/stellar-sdk": "^13.3.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
