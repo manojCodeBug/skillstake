@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster } from "sonner";
@@ -5,6 +6,7 @@ import { queryClient } from "./lib/query";
 import { ThemeProvider } from "./lib/theme";
 import { api } from "./lib/api";
 import { AppShell } from "./layout";
+import { useWallet } from "./lib/wallet";
 import {
   ActiveChallengesPage,
   AdminDashboardPage,
@@ -27,6 +29,12 @@ function AppNetworkGuard() {
 }
 
 export function App() {
+  const wallet = useWallet();
+
+  useEffect(() => {
+    wallet.initializeSession();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>

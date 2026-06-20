@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { WalletProvider } from "../types";
 import { isConnected, requestAccess, signTransaction as freighterSignTransaction } from "@stellar/freighter-api";
+import { api } from "./api";
 
 declare global {
   interface Window {
@@ -30,6 +31,7 @@ interface WalletState {
   disconnect: () => void;
   setBalance: (balance: number) => void;
   setError: (error: string | null) => void;
+  initializeSession: () => Promise<void>;
 }
 
 export const useWalletStore = create<WalletState>((set) => ({
@@ -43,7 +45,7 @@ export const useWalletStore = create<WalletState>((set) => ({
   connectFreighter: async () => {
     set({ connecting: true, error: null });
     try {
-      // 1. Try using the npm package first
+      let publicKey = "";
       const hasFreighter = await isConnected();
       if (hasFreighter) {
         const result = await requestAccess();
@@ -53,29 +55,38 @@ export const useWalletStore = create<WalletState>((set) => ({
             throw new Error(typeof resObj.error === "string" ? resObj.error : resObj.error.message || "Failed to connect");
           }
           if (resObj.address) {
-            set({ provider: "freighter", address: resObj.address, connected: true, connecting: false });
-            return;
+            publicKey = resObj.address;
           }
         } else if (typeof result === "string") {
-          set({ provider: "freighter", address: result, connected: true, connecting: false });
-          return;
+          publicKey = result;
         }
       }
 
-      // 2. Fallback to window.freighterApi or window.freighter
-      if (typeof window !== "undefined") {
+      if (!publicKey && typeof window !== "undefined") {
         const fApi = window.freighterApi || (window as any).freighter;
         if (fApi) {
           const res = await fApi.requestAccess();
-          const publicKey = typeof res === "string" ? res : (res && (res.address || res.publicKey)) || (await fApi.getPublicKey());
-          if (publicKey) {
-            set({ provider: "freighter", address: publicKey, connected: true, connecting: false });
-            return;
-          }
+          publicKey = typeof res === "string" ? res : (res && (res.address || res.publicKey)) || (await fApi.getPublicKey());
         }
       }
 
-      throw new Error("Freighter wallet is not installed or detected in your browser.");
+      if (!publicKey) {
+        throw new Error("Freighter wallet is not installed or detected in your browser.");
+      }
+
+      // Step 2: Request auth challenge from backend
+      const authChallenge = await api.getNonce(publicKey);
+
+      // Step 3: Sign auth challenge transaction
+      const signedXdr = await signTransaction(authChallenge.xdr, "freighter");
+
+      // Step 4: Verify with backend
+      const authSession = await api.verifyAuth({ walletAddress: publicKey, signedXdr });
+
+      // Step 5: Save session & update state
+      localStorage.setItem("skillstake_jwt", authSession.token);
+      localStorage.setItem("skillstake_preferred_wallet", "freighter");
+      set({ provider: "freighter", address: publicKey, connected: true, connecting: false });
     } catch (error) {
       set({ error: error instanceof Error ? error.message : "Unable to connect Freighter", connecting: false });
       throw error;
@@ -88,15 +99,57 @@ export const useWalletStore = create<WalletState>((set) => ({
         throw new Error("Albedo is not available");
       }
       const result = await window.albedo.publicKey({ network: "public" });
-      set({ provider: "albedo", address: result.pubkey, connected: true, connecting: false });
+      const publicKey = result.pubkey;
+
+      // Step 2: Request auth challenge from backend
+      const authChallenge = await api.getNonce(publicKey);
+
+      // Step 3: Sign auth challenge transaction
+      const signedXdr = await signTransaction(authChallenge.xdr, "albedo");
+
+      // Step 4: Verify with backend
+      const authSession = await api.verifyAuth({ walletAddress: publicKey, signedXdr });
+
+      // Step 5: Save session & update state
+      localStorage.setItem("skillstake_jwt", authSession.token);
+      localStorage.setItem("skillstake_preferred_wallet", "albedo");
+      set({ provider: "albedo", address: publicKey, connected: true, connecting: false });
     } catch (error) {
       set({ error: error instanceof Error ? error.message : "Unable to connect Albedo", connecting: false });
       throw error;
     }
   },
-  disconnect: () => set({ provider: null, address: null, connected: false, balance: 0 }),
+  disconnect: () => {
+    localStorage.removeItem("skillstake_jwt");
+    localStorage.removeItem("skillstake_preferred_wallet");
+    set({ provider: null, address: null, connected: false, balance: 0 });
+  },
   setBalance: (balance) => set({ balance }),
   setError: (error) => set({ error }),
+  initializeSession: async () => {
+    const token = localStorage.getItem("skillstake_jwt");
+    if (!token) return;
+    try {
+      const payloadBase64 = token.split(".")[1];
+      if (!payloadBase64) return;
+      // Decode JWT payload
+      const decodedPayload = JSON.parse(atob(payloadBase64));
+      const address = decodedPayload.walletAddress;
+      const preferredWallet = localStorage.getItem("skillstake_preferred_wallet") as WalletProvider || "freighter";
+      if (address) {
+        set({ provider: preferredWallet, address, connected: true });
+        try {
+          const balRes = await api.balance(address);
+          set({ balance: balRes.balance });
+        } catch (e) {
+          console.warn("Failed to fetch balance on session restore:", e);
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to restore wallet session:", e);
+      localStorage.removeItem("skillstake_jwt");
+    }
+  },
 }));
 
 export function useWallet() {

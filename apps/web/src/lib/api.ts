@@ -1,11 +1,18 @@
 export const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = localStorage.getItem("skillstake_jwt");
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(init?.headers as Record<string, string> ?? {}),
+  };
+  
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const response = await fetch(`${API_BASE}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
+    headers,
     ...init,
   });
 
@@ -34,6 +41,8 @@ export const api = {
   sendXlmPrepare: (body: Record<string, unknown>) => request<{ transactionId: string; xdr: string }>("/api/transactions/send-xlm/prepare", { method: "POST", body: JSON.stringify(body) }),
   submitTx: (body: Record<string, unknown>) => request<{ status: string; txHash: string; explorerUrl: string }>("/api/transactions/submit", { method: "POST", body: JSON.stringify(body) }),
   prepareContractTx: (body: Record<string, unknown>) => request<{ xdr: string }>("/api/contracts/prepare", { method: "POST", body: JSON.stringify(body) }),
+  getNonce: (address: string) => request<{ nonce: string; xdr: string }>(`/api/auth/nonce?address=${address}`),
+  verifyAuth: (body: { walletAddress: string; signedXdr: string }) => request<{ token: string; walletAddress: string }>("/api/auth/verify", { method: "POST", body: JSON.stringify(body) }),
 };
 
 export interface ChallengeSummary {

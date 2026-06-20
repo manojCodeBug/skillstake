@@ -1,12 +1,13 @@
 #![no_std]
 
-use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, String, Vec};
+use soroban_sdk::{contract, contractimpl, contracttype, token, Address, Env, String};
 
 #[contracttype]
 #[derive(Clone)]
 pub enum DataKey {
     Admin,
     VerificationThreshold,
+    Token,
     RewardPoolBalance,
     Counter,
     Challenge(u64),
@@ -49,12 +50,23 @@ pub struct SkillStakeContract;
 
 #[contractimpl]
 impl SkillStakeContract {
-    pub fn initialize(env: Env, admin: Address, verification_threshold: u32) {
-        admin.require_auth();
+    pub fn initialize(env: Env, admin: Address, verification_threshold: u32, token: Address) {
+        if env.storage().persistent().has(&DataKey::Admin) {
+            panic!("already initialized");
+        }
         env.storage().persistent().set(&DataKey::Admin, &admin);
         env.storage().persistent().set(&DataKey::VerificationThreshold, &verification_threshold);
+        env.storage().persistent().set(&DataKey::Token, &token);
         env.storage().persistent().set(&DataKey::RewardPoolBalance, &0i128);
         env.storage().persistent().set(&DataKey::Counter, &0u64);
+    }
+
+    pub fn admin(env: Env) -> Address {
+        env.storage().persistent().get(&DataKey::Admin).expect("not initialized")
+    }
+
+    pub fn token(env: Env) -> Address {
+        env.storage().persistent().get(&DataKey::Token).expect("not initialized")
     }
 
     pub fn create_challenge(
@@ -67,6 +79,13 @@ impl SkillStakeContract {
         end_time: u64,
     ) -> u64 {
         creator.require_auth();
+        assert!(stake_amount > 0, "stake must be greater than zero");
+
+        // Lock stake: Transfer XLM/Token from creator to the contract
+        let token_address = env.storage().persistent().get::<_, Address>(&DataKey::Token).expect("not initialized");
+        let token_client = token::Client::new(&env, &token_address);
+        token_client.transfer(&creator, &env.current_contract_address(), &stake_amount);
+
         let id = Self::next_id(&env);
         let challenge = Challenge {
             creator: creator.clone(),
@@ -153,15 +172,27 @@ impl SkillStakeContract {
     }
 
     pub fn complete_challenge(env: Env, challenge_id: u64) {
+        let admin = env.storage().persistent().get::<_, Address>(&DataKey::Admin).expect("not initialized");
+        admin.require_auth();
         Self::complete_challenge_internal(&env, challenge_id);
     }
 
     pub fn fail_challenge(env: Env, challenge_id: u64) {
+        let admin = env.storage().persistent().get::<_, Address>(&DataKey::Admin).expect("not initialized");
+        admin.require_auth();
         Self::fail_challenge_internal(&env, challenge_id);
     }
 
     pub fn reward_pool_balance(env: Env) -> i128 {
         env.storage().persistent().get(&DataKey::RewardPoolBalance).unwrap_or(0i128)
+    }
+
+    pub fn challenge(env: Env, id: u64) -> Challenge {
+        Self::get_challenge(&env, id)
+    }
+
+    pub fn proof(env: Env, id: u64) -> Proof {
+        Self::get_proof(&env, id)
     }
 
     fn verification_threshold(env: &Env) -> u32 {
@@ -193,19 +224,35 @@ impl SkillStakeContract {
 
     fn complete_challenge_internal(env: &Env, challenge_id: u64) {
         let mut challenge = Self::get_challenge(env, challenge_id);
+        assert!(challenge.active, "challenge inactive");
         challenge.active = false;
         challenge.completed = true;
         env.storage().persistent().set(&DataKey::Challenge(challenge_id), &challenge);
+
+        // Release stake: Transfer token back to creator
+        let token_address = env.storage().persistent().get::<_, Address>(&DataKey::Token).expect("not initialized");
+        let token_client = token::Client::new(env, &token_address);
+        token_client.transfer(&env.current_contract_address(), &challenge.creator, &challenge.stake_amount);
+
         env.events().publish(("challenge_completed", challenge_id), challenge.creator);
     }
 
     fn fail_challenge_internal(env: &Env, challenge_id: u64) {
         let mut challenge = Self::get_challenge(env, challenge_id);
+        assert!(challenge.active, "challenge inactive");
         challenge.active = false;
         challenge.failed = true;
         env.storage().persistent().set(&DataKey::Challenge(challenge_id), &challenge);
-        let balance = Self::reward_pool_balance(env) + challenge.stake_amount;
+
+        let balance = Self::reward_pool_balance(env.clone()) + challenge.stake_amount;
         env.storage().persistent().set(&DataKey::RewardPoolBalance, &balance);
+
+        // Move stake to Reward Pool: Transfer from contract to treasury/admin
+        let token_address = env.storage().persistent().get::<_, Address>(&DataKey::Token).expect("not initialized");
+        let token_client = token::Client::new(env, &token_address);
+        let admin = env.storage().persistent().get::<_, Address>(&DataKey::Admin).expect("not initialized");
+        token_client.transfer(&env.current_contract_address(), &admin, &challenge.stake_amount);
+
         env.events().publish(("challenge_failed", challenge_id), challenge.creator);
     }
 }

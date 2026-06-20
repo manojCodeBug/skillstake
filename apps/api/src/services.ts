@@ -88,14 +88,64 @@ export async function submitTransactionXdr(xdr: string) {
   return server.sendTransaction(xdr);
 }
 
-export async function fetchContractEvents(cursor?: string) {
+export async function fetchContractEvents(cursor?: string, order: "asc" | "desc" = "desc") {
   const server: any = await sorobanServer();
   const response = await server.getEvents({
     startLedger: undefined,
     filters: [{ type: "contract", contractIds: [env.VITE_CONTRACT_ID] }],
     cursor,
     limit: 25,
-    order: "desc",
+    order,
   });
   return response.events;
+}
+
+export async function buildAuthTransaction(walletAddress: string, nonce: string, networkPassphrase: string): Promise<string> {
+  const sdk: any = await stellarSdk();
+  // Using sequence "0" creates a signable offline transaction envelope that doesn't need to load the account from Horizon
+  const account = new sdk.Account(walletAddress, "0");
+  const tx = new sdk.TransactionBuilder(account, {
+    fee: sdk.BASE_FEE,
+    networkPassphrase,
+  })
+    .addMemo(sdk.Memo.text(nonce))
+    .addOperation(sdk.Operation.bumpSequence({ bumpTo: "1" }))
+    .setTimeout(sdk.TimeoutInfinite)
+    .build();
+  
+  return tx.toXDR();
+}
+
+export async function verifyTransactionSignature(
+  signedXdr: string,
+  walletAddress: string,
+  expectedNonce: string,
+  networkPassphrase: string
+): Promise<boolean> {
+  const sdk: any = await stellarSdk();
+  const tx = new sdk.Transaction(signedXdr, networkPassphrase);
+
+  // 1. Verify source address
+  if (tx.source !== walletAddress) {
+    return false;
+  }
+
+  // 2. Verify memo contains the expected nonce
+  if (!tx.memo || tx.memo.value !== expectedNonce) {
+    return false;
+  }
+
+  // 3. Verify signature matches the source walletAddress
+  const txHash = tx.hash();
+  const keypair = sdk.Keypair.fromPublicKey(walletAddress);
+
+  let hasValidSignature = false;
+  for (const sig of tx.signatures) {
+    if (keypair.verify(txHash, sig.signature())) {
+      hasValidSignature = true;
+      break;
+    }
+  }
+
+  return hasValidSignature;
 }

@@ -197,6 +197,19 @@ export const Activity = mongoose.model("Activity", activitySchema);
 export const Achievement = mongoose.model("Achievement", achievementSchema);
 export const LeaderboardSnapshot = mongoose.model("LeaderboardSnapshot", leaderboardSnapshotSchema);
 
+const nonceSchema = new Schema(
+  {
+    walletAddress: { type: String, required: true, index: true, trim: true, unique: true },
+    nonce: { type: String, required: true },
+  },
+  { timestamps: true }
+);
+
+// TTL index to automatically expire nonce documents after 5 minutes (300 seconds)
+nonceSchema.index({ createdAt: 1 }, { expireAfterSeconds: 300 });
+
+export const Nonce = mongoose.model("Nonce", nonceSchema);
+
 export type UserDoc = InferSchemaType<typeof userSchema>;
 export type ChallengeDoc = InferSchemaType<typeof challengeSchema>;
 export type ProofDoc = InferSchemaType<typeof proofSchema>;
@@ -207,3 +220,15 @@ export type NotificationDoc = InferSchemaType<typeof notificationSchema>;
 export type ActivityDoc = InferSchemaType<typeof activitySchema>;
 export type AchievementDoc = InferSchemaType<typeof achievementSchema>;
 export type LeaderboardSnapshotDoc = InferSchemaType<typeof leaderboardSnapshotSchema>;
+export type NonceDoc = InferSchemaType<typeof nonceSchema>;
+
+const systemStateSchema = new Schema(
+  {
+    key: { type: String, required: true, unique: true },
+    value: { type: String, required: true },
+  },
+  { timestamps: true }
+);
+
+export const SystemState = mongoose.model("SystemState", systemStateSchema);
+export type SystemStateDoc = InferSchemaType<typeof systemStateSchema>;

@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { env } from "./config";
 import { createApp } from "./app";
 import { RewardPool } from "./models";
+import { startEventProcessor } from "./eventProcessor";
 
 mongoose.connection.on("connected", () => {
   console.log("MongoDB connection established successfully");
@@ -25,6 +26,9 @@ async function main() {
     { $setOnInsert: { currentBalance: 0, historicalDistributions: [], topContributors: [], topEarners: [] } },
     { upsert: true, new: true }
   );
+
+  // Start background on-chain event processor
+  await startEventProcessor();
 
   const app = createApp();
   const server = app.listen(env.PORT, () => {

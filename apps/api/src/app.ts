@@ -1,3 +1,5 @@
+import crypto from "crypto";
+import jwt from "jsonwebtoken";
 import cors from "cors";
 import express from "express";
 import rateLimit from "express-rate-limit";
@@ -6,8 +8,8 @@ import pinoHttp from "pino-http";
 import { z } from "zod";
 import { calculateXpForChallengeCompletion, calculateXpForVerificationVote, challengeCreateSchema, proofSubmissionSchema, sendXlmSchema, voteSchema } from "@skillstake/shared";
 import { env } from "./config";
-import { Achievement, Activity, Challenge, LeaderboardSnapshot, Notification, Proof, RewardPool, Transaction, User, Vote } from "./models";
-import { buildContractTxXdr, explorerUrl, fetchContractEvents, fetchXlmBalance, prepareSendXlmTx, submitTransactionXdr } from "./services";
+import { Achievement, Activity, Challenge, LeaderboardSnapshot, Nonce, Notification, Proof, RewardPool, Transaction, User, Vote } from "./models";
+import { buildAuthTransaction, verifyTransactionSignature, buildContractTxXdr, explorerUrl, fetchContractEvents, fetchXlmBalance, prepareSendXlmTx, submitTransactionXdr } from "./services";
 
 const walletParamSchema = z.object({ address: z.string().min(1) });
 const idParamSchema = z.object({ id: z.string().min(1) });
@@ -30,6 +32,84 @@ export function createApp() {
   app.use(express.json({ limit: "1mb" }));
   app.use(rateLimit({ windowMs: 60_000, limit: 200 }));
   app.use(pinoHttp());
+
+  function authenticateToken(req: express.Request, res: express.Response, next: express.NextFunction) {
+    const authHeader = req.headers["authorization"];
+    const token = authHeader && authHeader.split(" ")[1];
+
+    if (!token) {
+      res.status(401).json({ message: "Access token required" });
+      return;
+    }
+
+    jwt.verify(token, env.JWT_SECRET, (err: any, decoded: any) => {
+      if (err) {
+        res.status(403).json({ message: "Invalid or expired session token" });
+        return;
+      }
+      (req as any).user = decoded;
+      next();
+    });
+  }
+
+  app.get("/api/auth/nonce", async (req, res, next) => {
+    try {
+      const address = z.string().min(20).parse(req.query.address);
+      const nonceVal = crypto.randomBytes(16).toString("hex");
+      
+      await Nonce.findOneAndUpdate(
+        { walletAddress: address },
+        { nonce: nonceVal },
+        { upsert: true, new: true }
+      );
+      
+      const xdr = await buildAuthTransaction(address, nonceVal, env.VITE_STELLAR_NETWORK_PASSPHRASE);
+      res.json({ nonce: nonceVal, xdr });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/auth/verify", async (req, res, next) => {
+    try {
+      const { walletAddress, signedXdr } = z.object({
+        walletAddress: z.string().min(20),
+        signedXdr: z.string().min(10)
+      }).parse(req.body);
+
+      const record = await Nonce.findOne({ walletAddress });
+      if (!record) {
+        res.status(401).json({ message: "No active authentication challenge found for this address" });
+        return;
+      }
+
+      const isValid = await verifyTransactionSignature(
+        signedXdr,
+        walletAddress,
+        record.nonce,
+        env.VITE_STELLAR_NETWORK_PASSPHRASE
+      );
+
+      if (!isValid) {
+        res.status(401).json({ message: "Invalid transaction signature. Authentication failed." });
+        return;
+      }
+
+      await Nonce.deleteOne({ walletAddress });
+
+      await User.updateOne(
+        { walletAddress },
+        { $setOnInsert: { walletAddress, displayName: "Anonymous", xp: 0 } },
+        { upsert: true }
+      );
+
+      const token = jwt.sign({ walletAddress }, env.JWT_SECRET, { expiresIn: "24h" });
+
+      res.json({ token, walletAddress });
+    } catch (error) {
+      next(error);
+    }
+  });
 
   app.get("/health", async (_req, res) => {
     const rewardPool = await RewardPool.findOne().lean();
@@ -141,9 +221,13 @@ export function createApp() {
     }
   });
 
-  app.post("/api/challenges", async (req, res, next) => {
+  app.post("/api/challenges", authenticateToken, async (req, res, next) => {
     try {
       const payload = challengeCreateSchema.parse(req.body);
+      if (payload.creatorAddress !== (req as any).user.walletAddress) {
+        res.status(403).json({ message: "Forbidden: Wallet address spoofing detected" });
+        return;
+      }
       const created = await Challenge.create({
         creatorAddress: payload.creatorAddress,
         title: payload.title,
@@ -172,10 +256,14 @@ export function createApp() {
     }
   });
 
-  app.post("/api/challenges/:id/proofs", async (req, res, next) => {
+  app.post("/api/challenges/:id/proofs", authenticateToken, async (req, res, next) => {
     try {
       const { id } = idParamSchema.parse(req.params);
       const payload = proofSubmissionSchema.parse({ ...req.body, challengeId: id });
+      if (payload.submitterAddress !== (req as any).user.walletAddress) {
+        res.status(403).json({ message: "Forbidden: Wallet address spoofing detected" });
+        return;
+      }
       const challenge = await Challenge.findById(id);
       if (!challenge) {
         res.status(404).json({ message: "Challenge not found" });
@@ -208,10 +296,14 @@ export function createApp() {
     }
   });
 
-  app.post("/api/proofs/:id/votes", async (req, res, next) => {
+  app.post("/api/proofs/:id/votes", authenticateToken, async (req, res, next) => {
     try {
       const { id } = idParamSchema.parse(req.params);
       const payload = voteSchema.parse({ ...req.body, proofId: id });
+      if (payload.voterAddress !== (req as any).user.walletAddress) {
+        res.status(403).json({ message: "Forbidden: Wallet address spoofing detected" });
+        return;
+      }
       const proof = await Proof.findById(id);
       if (!proof) {
         res.status(404).json({ message: "Proof not found" });
@@ -294,8 +386,16 @@ export function createApp() {
 
   app.get("/api/reward-pool", async (_req, res, next) => {
     try {
+      const onChainBalance = await fetchXlmBalance(env.REWARD_POOL_TREASURY_ADDRESS);
       const rewardPool = await RewardPool.findOne().lean();
-      res.json({ rewardPool: rewardPool ?? { currentBalance: 0, historicalDistributions: [], topContributors: [], topEarners: [] } });
+      res.json({
+        rewardPool: {
+          currentBalance: onChainBalance,
+          historicalDistributions: rewardPool?.historicalDistributions ?? [],
+          topContributors: rewardPool?.topContributors ?? [],
+          topEarners: rewardPool?.topEarners ?? []
+        }
+      });
     } catch (error) {
       next(error);
     }
