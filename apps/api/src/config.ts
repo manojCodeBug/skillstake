@@ -6,7 +6,7 @@ dotenv.config();
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().positive().default(4000),
-  MONGODB_URI: z.string().min(1),
+  MONGODB_URI: z.string().min(1).default("mongodb://127.0.0.1:27017/skillstake"),
   JWT_SECRET: z.string().min(16).default("skillstake-jwt-secret-fallback-key-32chars"),
   ALLOWED_ORIGIN: z.string().min(1).default("*"),
   VITE_HORIZON_URL: z.string().url().default("https://horizon-testnet.stellar.org"),
