@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SkillStake Dashboard | Precision Performance</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Geist:wght@400;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Shared Tailwind Config -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                "tertiary": "#ffffff",
+                "surface-bright": "#3a3939",
+                "surface-tint": "#c6c6c7",
+                "on-tertiary": "#2f3131",
+                "on-surface": "#e5e2e1",
+                "secondary-fixed": "#e2e1eb",
+                "surface-container-lowest": "#0e0e0e",
+                "inverse-surface": "#e5e2e1",
+                "primary-fixed": "#e2e2e2",
+                "secondary-fixed-dim": "#c6c6cf",
+                "on-tertiary-fixed-variant": "#454747",
+                "surface-variant": "#353434",
+                "outline-variant": "#444748",
+                "tertiary-fixed-dim": "#c6c6c7",
+                "tertiary-fixed": "#e2e2e2",
+                "on-primary-container": "#636565",
+                "background": "#141313",
+                "on-primary-fixed": "#1a1c1c",
+                "tertiary-container": "#e2e2e2",
+                "on-background": "#e5e2e1",
+                "primary": "#ffffff",
+                "secondary": "#c6c6cf",
+                "error": "#ffb4ab",
+                "secondary-container": "#45464e",
+                "outline": "#8e9192",
+                "on-tertiary-container": "#636565",
+                "surface-container-highest": "#353434",
+                "on-surface-variant": "#c4c7c8",
+                "on-secondary-fixed-variant": "#45464e",
+                "inverse-on-surface": "#313030",
+                "on-tertiary-fixed": "#1a1c1c",
+                "surface": "#141313",
+                "surface-dim": "#141313",
+                "on-secondary-container": "#b4b4bd",
+                "inverse-primary": "#5d5f5f",
+                "on-secondary-fixed": "#1a1b22",
+                "surface-container-low": "#1c1b1b",
+                "surface-container": "#201f1f",
+                "primary-fixed-dim": "#c6c6c7",
+                "on-primary-fixed-variant": "#454747",
+                "on-secondary": "#2f3037",
+                "on-error-container": "#ffdad6",
+                "primary-container": "#e2e2e2",
+                "surface-container-high": "#2a2a2a",
+                "on-error": "#690005",
+                "error-container": "#93000a",
+                "on-primary": "#2f3131"
+            },
+            "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+            },
+            "spacing": {
+                "gutter": "24px",
+                "container-max": "1440px",
+                "sm": "8px",
+                "md": "16px",
+                "xl": "40px",
+                "lg": "24px",
+                "base": "4px",
+                "xs": "4px"
+            },
+            "fontFamily": {
+                "display-xl": ["Inter"],
+                "label-caps": ["Geist"],
+                "mono-data": ["Geist"],
+                "title-md": ["Inter"],
+                "display-xl-mobile": ["Inter"],
+                "headline-lg": ["Inter"],
+                "body-sm": ["Inter"],
+                "body-base": ["Inter"]
+            },
+            "fontSize": {
+                "display-xl": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                "label-caps": ["11px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                "mono-data": ["13px", {"lineHeight": "20px", "fontWeight": "400"}],
+                "title-md": ["18px", {"lineHeight": "24px", "fontWeight": "500"}],
+                "display-xl-mobile": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                "headline-lg": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                "body-sm": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+                "body-base": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #0A0A0A;
+            color: #e5e2e1;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .active-glow {
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.05);
+        }
+        .sidebar-active {
+            background-color: #ffffff;
+            color: #2f3131;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #353434;
+            border-radius: 10px;
+        }
+        .transition-soft {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background overflow-hidden h-screen flex">
+<!-- SideNavBar Shell -->
+<aside class="hidden lg:flex flex-col fixed left-0 top-0 h-screen w-64 p-lg z-40 bg-surface-container border-r border-outline-variant/30">
+<div class="mb-xl">
+<h1 class="font-display-xl text-display-xl tracking-tight text-primary">SkillStake</h1>
+</div>
+<div class="flex items-center gap-md px-md py-sm mb-xl glass-panel rounded-xl">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-variant flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="A professional close-up studio portrait of Alex Rivers, a tech enthusiast with a focused expression. The lighting is moody and cinematic with a cool blue rim light against a dark, minimalist background, reflecting a sophisticated Web3 dashboard aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDFY6m97RsTYZchoo9Sz2AaoNBzHdLSItNj-OGBa5fgggJvtdBl41QdysjiZ8BsxqX_yr6aGGLSZArv9eY3jt4xpuuMwXBR02q8IfSVEqFgi1H_OgP92kI71BUcMkOBHWtQbSGc02dtb_QAmXm2jHr4DRx98CX0--uYdfmOXp2HHIh0RH51QtcAjKYZPDuwAf52A5Gzl8ZtZrb0nhCFdQuLXWUK1gMyuVH8vIGJn74SbA-IyBfrnOBrcs1J8SkvBR79OgEr1lT0Mjo"/>
+</div>
+<div class="overflow-hidden">
+<p class="font-title-md text-title-md truncate">Alex Rivers</p>
+<p class="font-label-caps text-label-caps text-on-surface-variant">1,240 XLM Staked</p>
+</div>
+</div>
+<nav class="flex-1 space-y-sm">
+<!-- Active State: Dashboard -->
+<a class="bg-primary text-on-primary rounded-lg flex items-center gap-md px-md py-sm active-glow scale-98 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-caps text-label-caps">Dashboard</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface rounded-lg flex items-center gap-md px-md py-sm transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="bolt">bolt</span>
+<span class="font-label-caps text-label-caps">Challenges</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface rounded-lg flex items-center gap-md px-md py-sm transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="leaderboard">leaderboard</span>
+<span class="font-label-caps text-label-caps">Leaderboard</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface rounded-lg flex items-center gap-md px-md py-sm transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="font-label-caps text-label-caps">Notifications</span>
+</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface rounded-lg flex items-center gap-md px-md py-sm transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-caps text-label-caps">Settings</span>
+</a>
+</nav>
+<div class="mt-auto space-y-sm">
+<button class="w-full py-sm bg-surface-variant text-on-surface rounded-lg font-label-caps text-label-caps hover:bg-outline-variant/30 transition-all mb-lg">
+                Create Challenge
+            </button>
+<a class="text-on-surface-variant hover:text-primary flex items-center gap-md px-md py-sm transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+<span class="font-label-caps text-label-caps">Support</span>
+</a>
+<a class="text-on-surface-variant hover:text-primary flex items-center gap-md px-md py-sm transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="font-label-caps text-label-caps">Sign Out</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Stage -->
+<main class="flex-1 lg:ml-64 h-screen overflow-y-auto custom-scrollbar relative">
+<!-- TopNavBar Shell -->
+<header class="sticky top-0 z-50 w-full glass-panel border-b border-outline-variant/30 px-xl py-md flex justify-between items-center max-w-container-max mx-auto">
+<div class="flex items-center gap-md">
+<h2 class="font-headline-lg text-headline-lg">Dashboard</h2>
+<div class="px-sm py-xs bg-surface-container-high rounded border border-outline-variant/20">
+<span class="font-mono-data text-mono-data text-on-tertiary-container">Mainnet</span>
+</div>
+</div>
+<div class="flex items-center gap-lg">
+<div class="flex items-center gap-sm bg-surface-container-low px-md py-sm rounded-full border border-outline-variant/20">
+<div class="w-2 h-2 rounded-full bg-success bg-green-400"></div>
+<span class="font-mono-data text-mono-data">G...F32A</span>
+<div class="h-4 w-[1px] bg-outline-variant/30"></div>
+<span class="font-body-base text-body-base font-bold">12,450.21 XLM</span>
+</div>
+<button class="px-lg py-sm bg-primary text-on-primary rounded-lg font-label-caps text-label-caps hover:scale-95 transition-all">
+                    Launch App
+                </button>
+</div>
+</header>
+<div class="p-xl max-w-container-max mx-auto space-y-xl">
+<!-- Stats Grid -->
+<section class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-lg">
+<div class="glass-panel p-lg rounded-xl flex flex-col justify-between group hover:border-primary/30 transition-soft">
+<div class="flex justify-between items-start mb-md">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="account_balance_wallet">account_balance_wallet</span>
+<span class="font-label-caps text-label-caps text-green-400">+2.4%</span>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-xs">Wallet Balance</p>
+<p class="font-headline-lg text-headline-lg">12,450.2 <span class="text-on-surface-variant text-body-sm">XLM</span></p>
+</div>
+</div>
+<div class="glass-panel p-lg rounded-xl flex flex-col justify-between hover:border-primary/30 transition-soft">
+<div class="flex justify-between items-start mb-md">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="target">target</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant">4/6</span>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-xs">Active Challenges</p>
+<p class="font-headline-lg text-headline-lg">4 <span class="text-on-surface-variant text-body-sm">Running</span></p>
+</div>
+</div>
+<div class="glass-panel p-lg rounded-xl flex flex-col justify-between hover:border-primary/30 transition-soft">
+<div class="flex justify-between items-start mb-md">
+<span class="material-symbols-outlined text-primary" data-icon="local_fire_department" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant">Top 5%</span>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-xs">Current Streak</p>
+<p class="font-headline-lg text-headline-lg">12 <span class="text-on-surface-variant text-body-sm">Days</span></p>
+</div>
+</div>
+<div class="glass-panel p-lg rounded-xl flex flex-col justify-between hover:border-primary/30 transition-soft">
+<div class="flex justify-between items-start mb-md">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="military_tech">military_tech</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant">Lv. 24</span>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-xs">XP Progress</p>
+<div class="w-full bg-surface-variant h-1.5 rounded-full mt-sm overflow-hidden">
+<div class="bg-primary h-full w-3/4 rounded-full"></div>
+</div>
+</div>
+</div>
+<div class="glass-panel p-lg rounded-xl flex flex-col justify-between hover:border-primary/30 transition-soft">
+<div class="flex justify-between items-start mb-md">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="insights">insights</span>
+<span class="font-label-caps text-label-caps text-primary">High</span>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-xs">Success Rate</p>
+<p class="font-headline-lg text-headline-lg">94.2<span class="text-on-surface-variant text-body-sm">%</span></p>
+</div>
+</div>
+</section>
+<!-- Bento Layout Content -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-lg">
+<!-- Left Column: Challenges & Reward Pool -->
+<div class="lg:col-span-8 space-y-lg">
+<div class="flex justify-between items-end">
+<h3 class="font-headline-lg text-headline-lg">Active Challenges</h3>
+<a class="font-label-caps text-label-caps text-on-surface-variant hover:text-primary transition-colors" href="#">View All</a>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-lg">
+<!-- Challenge Card 1 -->
+<div class="glass-panel p-lg rounded-xl space-y-lg hover:shadow-xl transition-soft border-l-4 border-l-primary">
+<div class="flex justify-between">
+<div class="bg-surface-variant p-sm rounded-lg">
+<span class="material-symbols-outlined" data-icon="terminal">terminal</span>
+</div>
+<div class="text-right">
+<span class="font-label-caps text-label-caps text-on-surface-variant block">STAKED</span>
+<span class="font-mono-data text-mono-data font-bold">500 XLM</span>
+</div>
+</div>
+<div>
+<h4 class="font-title-md text-title-md mb-xs">Rust Smart Contracts 101</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Complete the Soroban development path by Friday.</p>
+</div>
+<div class="space-y-sm">
+<div class="flex justify-between font-label-caps text-label-caps">
+<span>Progress</span>
+<span>65%</span>
+</div>
+<div class="w-full bg-surface-variant h-2 rounded-full overflow-hidden">
+<div class="bg-primary h-full w-[65%] rounded-full shadow-[0_0_8px_rgba(255,255,255,0.4)]"></div>
+</div>
+</div>
+</div>
+<!-- Challenge Card 2 -->
+<div class="glass-panel p-lg rounded-xl space-y-lg hover:shadow-xl transition-soft border-l-4 border-l-surface-variant">
+<div class="flex justify-between">
+<div class="bg-surface-variant p-sm rounded-lg">
+<span class="material-symbols-outlined" data-icon="palette">palette</span>
+</div>
+<div class="text-right">
+<span class="font-label-caps text-label-caps text-on-surface-variant block">STAKED</span>
+<span class="font-mono-data text-mono-data font-bold">250 XLM</span>
+</div>
+</div>
+<div>
+<h4 class="font-title-md text-title-md mb-xs">UX Masterclass Audit</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Analyze 5 dApp interfaces for accessibility.</p>
+</div>
+<div class="space-y-sm">
+<div class="flex justify-between font-label-caps text-label-caps">
+<span>Progress</span>
+<span>20%</span>
+</div>
+<div class="w-full bg-surface-variant h-2 rounded-full overflow-hidden">
+<div class="bg-primary h-full w-[20%] rounded-full opacity-60"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Reward Pool Statistics -->
+<div class="glass-panel p-xl rounded-xl relative overflow-hidden group">
+
+<div class="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-xl items-center">
+<div>
+<h3 class="font-headline-lg text-headline-lg mb-md">Reward Pool Statistics</h3>
+<p class="font-body-base text-body-base text-on-surface-variant mb-xl">Stellar ecosystem grants and community stakes currently available for redistribution among successful participants.</p>
+<div class="grid grid-cols-2 gap-lg">
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase">Total Pool</p>
+<p class="font-title-md text-title-md">1.2M XLM</p>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase">Awaiting Claim</p>
+<p class="font-title-md text-title-md">45,210 XLM</p>
+</div>
+</div>
+</div>
+<div class="flex justify-center">
+<div class="relative w-48 h-48">
+<svg class="w-full h-full -rotate-90" viewbox="0 0 100 100">
+<circle class="text-surface-variant" cx="50" cy="50" fill="none" r="40" stroke="currentColor" stroke-width="8"></circle>
+<circle class="text-primary" cx="50" cy="50" fill="none" r="40" stroke="currentColor" stroke-dasharray="251.2" stroke-dashoffset="62.8" stroke-width="8"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="font-display-xl text-headline-lg">75%</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant">Allocated</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Recent Activity Feed -->
+<div class="lg:col-span-4 space-y-lg">
+<div class="flex justify-between items-end">
+<h3 class="font-headline-lg text-headline-lg">Recent Activity</h3>
+<button class="p-sm hover:bg-surface-variant rounded-full transition-all">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="filter_list">filter_list</span>
+</button>
+</div>
+<div class="glass-panel rounded-xl overflow-hidden">
+<div class="divide-y divide-outline-variant/20">
+<!-- Activity Item 1 -->
+<div class="p-lg hover:bg-surface-container-high transition-soft group">
+<div class="flex gap-md">
+<div class="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-green-400 text-[18px]" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div>
+<p class="font-body-base text-body-base">
+<span class="font-bold">Challenge Completed:</span> Data structures quiz master.
+                                        </p>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">+120 XLM Unlocked</p>
+<p class="font-label-caps text-[10px] text-outline mt-2 uppercase">2 HOURS AGO</p>
+</div>
+</div>
+</div>
+<!-- Activity Item 2 -->
+<div class="p-lg hover:bg-surface-container-high transition-soft">
+<div class="flex gap-md">
+<div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-primary text-[18px]" data-icon="lock">lock</span>
+</div>
+<div>
+<p class="font-body-base text-body-base">
+                                            Stake Locked for <span class="font-bold">Solidity Audit</span>.
+                                        </p>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">-500 XLM committed to escrow.</p>
+<p class="font-label-caps text-[10px] text-outline mt-2 uppercase">5 HOURS AGO</p>
+</div>
+</div>
+</div>
+<!-- Activity Item 3 -->
+<div class="p-lg hover:bg-surface-container-high transition-soft">
+<div class="flex gap-md">
+<div class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]" data-icon="person_add">person_add</span>
+</div>
+<div>
+<p class="font-body-base text-body-base">
+<span class="font-bold">New Challenger</span> followed your profile.
+                                        </p>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">@dev_stellar joined the leaderboard.</p>
+<p class="font-label-caps text-[10px] text-outline mt-2 uppercase">YESTERDAY</p>
+</div>
+</div>
+</div>
+<!-- Activity Item 4 -->
+<div class="p-lg hover:bg-surface-container-high transition-soft">
+<div class="flex gap-md">
+<div class="w-8 h-8 rounded-full bg-error/10 flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-error text-[18px]" data-icon="warning">warning</span>
+</div>
+<div>
+<p class="font-body-base text-body-base">
+                                            Challenge <span class="font-bold text-error">Expiring Soon</span>.
+                                        </p>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">React Design Patterns ends in 4 hours.</p>
+<p class="font-label-caps text-[10px] text-outline mt-2 uppercase">YESTERDAY</p>
+</div>
+</div>
+</div>
+</div>
+<button class="w-full py-md text-center font-label-caps text-label-caps text-on-surface-variant hover:bg-surface-container-highest hover:text-primary transition-all border-t border-outline-variant/10">
+                            View Full History
+                        </button>
+</div>
+<!-- Promo Card -->
+<div class="p-lg rounded-xl bg-gradient-to-br from-primary-container/20 to-surface-variant border border-outline-variant/20">
+<div class="flex items-center gap-md mb-md">
+<span class="material-symbols-outlined text-primary" data-icon="star">star</span>
+<h4 class="font-title-md text-title-md">SkillStake Premium</h4>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-md">Get 2x XP multiplier and early access to Stellar foundation grants.</p>
+<button class="w-full py-sm bg-primary text-on-primary rounded-lg font-label-caps text-label-caps hover:scale-95 transition-all">Upgrade Now</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer Shell -->
+<footer class="w-full py-xl px-lg flex flex-col md:flex-row justify-between items-center gap-lg border-t border-outline-variant/20 mt-xl bg-surface-container-lowest">
+<div class="flex flex-col items-center md:items-start gap-sm">
+<span class="font-display-xl text-headline-lg text-primary">SkillStake</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">© 2024 SkillStake Protocol. Built on Stellar.</p>
+</div>
+<div class="flex gap-xl">
+<a class="font-label-caps text-label-caps text-on-surface-variant hover:text-primary transition-colors" href="#">Privacy</a>
+<a class="font-label-caps text-label-caps text-on-surface-variant hover:text-primary transition-colors" href="#">Terms</a>
+<a class="font-label-caps text-label-caps text-on-surface-variant hover:text-primary transition-colors" href="#">Twitter</a>
+<a class="font-label-caps text-label-caps text-on-surface-variant hover:text-primary transition-colors" href="#">Discord</a>
+</div>
+</footer>
+</main>
+<!-- Theme Switcher Pill -->
+<div class="fixed bottom-lg left-1/2 -translate-x-1/2 z-50 glass-panel rounded-full p-xs flex gap-xs items-center">
+<button class="p-sm rounded-full text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]" data-icon="light_mode">light_mode</span>
+</button>
+<button class="p-sm rounded-full bg-primary text-on-primary shadow-lg transition-all">
+<span class="material-symbols-outlined text-[20px]" data-icon="dark_mode">dark_mode</span>
+</button>
+<button class="p-sm rounded-full text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]" data-icon="computer">computer</span>
+</button>
+</div>
+<script>
+        // Micro-interactions for glass panels
+        document.querySelectorAll('.glass-panel').forEach(panel => {
+            panel.addEventListener('mousemove', (e) => {
+                const rect = panel.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                panel.style.setProperty('--mouse-x', `${x}px`);
+                panel.style.setProperty('--mouse-y', `${y}px`);
+            });
+        });
+
+        // Simple animation trigger for stats
+        const observerOptions = {
+            threshold: 0.1
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('opacity-100');
+                    entry.target.classList.remove('translate-y-4');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('section > div').forEach(el => {
+            el.classList.add('transition-all', 'duration-700', 'opacity-0', 'translate-y-4');
+            observer.observe(el);
+        });
+    </script>
+</body></html>
