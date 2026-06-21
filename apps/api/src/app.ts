@@ -22,7 +22,11 @@ export function createApp() {
   app.use(cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      if (allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
+      if (
+        allowedOrigins.includes("*") || 
+        allowedOrigins.includes(origin) ||
+        (env.NODE_ENV === "development" && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin))
+      ) {
         return callback(null, true);
       }
       return callback(new Error("Not allowed by CORS"));
